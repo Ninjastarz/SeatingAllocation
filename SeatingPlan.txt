@@ -1,7 +1,7 @@
         A B C   D E F
-Row 1   * * *   * * * 
+Row 1   A * *   * * * 
 Row 2   * * *   * * * 
-Row 3   * * *   * * * 
+Row 3   A A *   * * * 
 Row 4   * * *   * * * 
 Row 5   * * *   * * * 
 Row 6   * * *   * * * 

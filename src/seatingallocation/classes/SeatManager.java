@@ -2,17 +2,20 @@ package seatingallocation.classes;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.util.*;
 
+
 public class SeatManager {
 	private Customer[][] Seats;
 	
+	private Customer[] Customers;
+
 	public SeatManager() {}
 	
+	//getters and setters
 	public Customer[][] getSeats() {
 		return Seats;
 	}
@@ -20,8 +23,16 @@ public class SeatManager {
 	public void setSeats(Customer[][] seats) {
 		Seats = seats;
 	}
+	
+	public Customer[] getCustomers() {
+		return Customers;
+	}
 
-	//adds a new customer to the seat bookings
+	public void setCustomers(Customer[] customers) {
+		Customers = customers;
+	}
+
+	//searches the seat bookings for a suitable seat
 	public void AddCustomer(Customer c) {
 
 		int start = 0;
@@ -78,18 +89,69 @@ public class SeatManager {
 			System.out.println("Error: No available " + seatType + " seats in " + c.getClassType() + ".");
 		}
 		else {
-			System.out.println("Success! " + seatType + " seat booked in aisle " + c.getSeat()[1] + ".");
+			//replaces customer array with one that is 1 bigger then sorts the array by name
+			int oldLength = Customers.length;
+			Customer[] newCustArr = new Customer[oldLength + 1];
+			System.arraycopy(Customers, 0, newCustArr, 0, oldLength);
+			newCustArr[oldLength] = c;
+			Customers = newCustArr;
+			Arrays.sort(Customers);
+			
+			System.out.println("Success! Seat " + (c.getSeat()[1] + 1) + 
+					Columns.byIndex(c.getSeat()[0]) + " has been booked for " + c.getName() + ".\n");
 		}
 	}
 
+	//uses a binary search method to find a customer by name
+	public Customer BinarySearch(String name) {
+	    Customer target = new Customer();
+	    target.setName(name);
+		int low = 0;
+		int high = Customers.length - 1;
+		int mid;
+
+		while (low <= high) {
+			mid = (low + high) / 2;
+
+			if (Customers[mid].compareTo(target) < 0) {
+				low = mid + 1;
+			} else if (Customers[mid].compareTo(target) > 0) {
+				high = mid - 1;
+			} else {
+				return Customers[mid];
+			} 
+		}
+		return null;
+	}
+	
+	//replaces a customer with a default customer in seating array and updates customer array
 	public void CancelSeatAllocation(Customer c) {
 		Customer newCust = new Customer();
 		newCust.setSeat(c.getSeat());
 		Seats[c.getSeat()[0]][c.getSeat()[1]] = newCust;
 		
+		int index = 0;
+		int length = Customers.length;
+		
+		for (int i = 0; i < length; i++) {
+            if (c.equals(Customers[i])) {
+                index = i;
+                break;
+            }
+        }
+		
+		Customer[] newCustArr = new Customer[Customers.length - 1];
+		System.arraycopy(Customers, 0, newCustArr, 0, index);
+		if (index < length - 1) {
+            System.arraycopy(Customers, index + 1, newCustArr, index, length - index - 1);
+        }
+		
+		Customers = newCustArr;
+		
 		UpdateFile(c.getSeat()[0], c.getSeat()[1]);
 	}
 	
+	//replaces default customer with user entered one in seating array
 	private boolean AllocateSeat(Customer c, int column, int row) {
 		Seats[column][row] = c;
 		c.setSeat(new int[] {column, row});
@@ -97,7 +159,9 @@ public class SeatManager {
 		return true;
 	}
 	
+	//creates arrays and populates seats with default data
 	public void NewFlight() {
+		Customers = new Customer[0];
 		Seats = new Customer[6][12];
 		
 		for(int i = 0; i < 6; i++) {
@@ -108,6 +172,7 @@ public class SeatManager {
 		PopulateFile();
 	}
 	
+	//returns the seat allocations as a list to be displayed
 	private List<String> getSeatsString(){
 		List<String> lines = new ArrayList<String>();
 		lines.add("        A B C   D E F");
@@ -137,11 +202,13 @@ public class SeatManager {
 		return lines;
 	}
 	
+	//prints the seat allocations to the console
 	public void PrintSeats() {
 		List<String> lines = getSeatsString();
 		for (String line : lines) {
 			System.out.println(line);
 		}
+		System.out.println("\n");
 	}
 
 	//populates fixed length file with empty seats
@@ -166,6 +233,7 @@ public class SeatManager {
 		
 	}
 	
+	//updates the SeatingData file at a specific point using a random access method
 	public void UpdateFile(int column, int row) {
 		int pos = 36 + (row * 180) + (column * 30);
 		try {
